@@ -14,40 +14,41 @@ volumes: [
   properties([parameters([string(defaultValue: '', description: 'My registry', name: 'registry_url')])])
 
   node(label) {
-      def built_img = ''
-      stage('Checkout git repo') {
-        checkout scm
+    def built_img = ''
+    stage('Checkout git repo') {
+      checkout scm
+    }
+    stage('Docker Login') {
+      container('awscli') {
+        sh(script: "aws ecr get-login --region us-east-2 --no-include-email > /tmp/ecrlogin/login", returnStdout: true)
       }
-      stage('Docker Login') {
-        container('awscli') {
-          sh(script: "aws ecr get-login --region us-east-2 --no-include-email > /tmp/ecrlogin/login", returnStdout: true)
-        }
+    }
+    stage('Build and push Docker image') {
+      container('docker') {
+        sh(script: "eval \$(cat /tmp/ecrlogin/login)", returnStdout: true)
+        sh(script: "docker build -t ${registry_url}/customersapi:${BUILD_NUMBER} -f src/CustomersAPI/Dockerfile .", returnStdout: true)
+        sh(script: "docker push ${registry_url}/customersapi:${BUILD_NUMBER}", returnStdout: true)
+        sh(script: "docker build -t ${registry_url}/customersmvc:${BUILD_NUMBER} -f src/CustomersMVC/Dockerfile .", returnStdout: true)
+        sh(script: "docker push ${registry_url}/customersmvc:${BUILD_NUMBER}", returnStdout: true)
       }
-      stage('Build and push Docker image') {
-        container('docker') {
-          sh(script: "eval \$(cat /tmp/ecrlogin/login)", returnStdout: true)
-          sh(script: "docker build -t ${registry_url}/customersapi:${BUILD_NUMBER} -f src/CustomersAPI/Dockerfile .", returnStdout: true)
-          sh(script: "docker push ${registry_url}/customersapi:${BUILD_NUMBER}", returnStdout: true)
-          sh(script: "docker build -t ${registry_url}/customersmvc:${BUILD_NUMBER} -f src/CustomersMVC/Dockerfile .", returnStdout: true)
-          sh(script: "docker push ${registry_url}/customersmvc:${BUILD_NUMBER}", returnStdout: true)
-        }
+    }
+    stage('Unit Tests') {
+      sh 'echo test'
+    }
+    stage('Browser Tests'){
+        parallel(
+            "Edge":{sh 'echo test'},
+            "Firefox":{sh 'echo test'},
+            "Chrome":{sh 'echo test'}
+            )
+    }
+    stage('Push Docker image to Production Tag') {
+      container('docker') {
+        sh(script: "docker tag ${registry_url}/customersapi:${BUILD_NUMBER} ${registry_url}/customersapi:production", returnStdout: true)
+        sh(script: "docker push ${registry_url}/customersapi:production", returnStdout: true)
+        sh(script: "docker tag ${registry_url}/customersmvc:${BUILD_NUMBER} ${registry_url}/customersmvc:production", returnStdout: true)
+        sh(script: "docker push ${registry_url}/customersmvc:production", returnStdout: true)
       }
-      stage('Unit Tests') {
-        sh 'echo test'
-      }
-      stage('Browser Tests'){
-          parallel(
-              "Edge":{sh 'echo test'},
-              "Firefox":{sh 'echo test'},
-              "Chrome":{sh 'echo test'}
-              )
-      }
-      // stage('Deploy into k8s') {
-
-      //   container('helm') {
-      //     sh "helm upgrade customers"
-      //   }
-      //   // sh(script: "cat cicd/k8s.yaml | sed -e 's/build_number/${BUILD_NUMBER}/g' -e 's/YourACRName/${acr_username}/g' | kubectl apply -f - --kubeconfig /var/lib/jenkins/.kube/config", returnStdout: true)
-      // }
+    }
   }
 }
