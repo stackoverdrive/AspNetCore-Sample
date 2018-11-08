@@ -20,7 +20,7 @@ volumes: [
       }
       stage('Docker Login') {
         container('awscli') {
-          sh(script: "eval $(aws ecr get-login --region us-east-2 --no-include-email)", returnStdout: true)
+          sh(script: "eval \$(aws ecr get-login --region us-east-2 --no-include-email)", returnStdout: true)
         }
       }
       stage('Build and push Docker image') {
