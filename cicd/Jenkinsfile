@@ -7,10 +7,7 @@ podTemplate(label: label, containers: [
 ],
 volumes: [
   hostPathVolume(mountPath: '/var/run/docker.sock', hostPath: '/var/run/docker.sock')
-]
-{
-
-  properties([parameters([string(defaultValue: 'Hello', description: 'How should I greet the world?', name: 'Greeting')])])
+] {
 
   node(label) {
       def built_img = ''
