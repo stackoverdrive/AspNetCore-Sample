@@ -51,10 +51,5 @@ volumes: [
         sh(script: "docker push ${registry_url}/customersmvc:production", returnStdout: true)
       }
     }
-    stage('Update the cluster') {
-      container('helm') {
-        sh(script: "helm ls", returnStdout: true)
-      }
-    }
   }
 }
