@@ -9,6 +9,7 @@ podTemplate(label: label, containers: [
 volumes: [
   hostPathVolume(mountPath: '/tmp/ecrlogin', hostPath: '/tmp/ecrlogin'),
   hostPathVolume(mountPath: '/var/run/docker.sock', hostPath: '/var/run/docker.sock')
+  hostPathVolume(mountPath: '/home/jenkins/.kube/config', hostPath: '/etc/kubernetes/admin.conf')
 ]) {
 
   properties([parameters([string(defaultValue: '', description: 'My registry', name: 'registry_url')])])
@@ -48,6 +49,11 @@ volumes: [
         sh(script: "docker push ${registry_url}/customersapi:production", returnStdout: true)
         sh(script: "docker tag ${registry_url}/customersmvc:${BUILD_NUMBER} ${registry_url}/customersmvc:production", returnStdout: true)
         sh(script: "docker push ${registry_url}/customersmvc:production", returnStdout: true)
+      }
+    }
+    stage('Update the cluster') {
+      container('helm') {
+        sh(script: "helm ls", returnStdout: true)
       }
     }
   }
