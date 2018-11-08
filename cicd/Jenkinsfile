@@ -10,7 +10,7 @@ volumes: [
   hostPathVolume(mountPath: '/var/run/docker.sock', hostPath: '/var/run/docker.sock')
 ]) {
 
-  properties([parameters([string(defaultValue: 'Hello', description: 'How should I greet the world?', name: 'Greeting')])])
+  properties([parameters([string(defaultValue: '', description: 'My registry', name: 'registry_url')])])
 
   node(label) {
       def built_img = ''
