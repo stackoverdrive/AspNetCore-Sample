@@ -7,7 +7,7 @@ podTemplate(label: label, containers: [
   containerTemplate(name: 'helm', image: 'lachlanevenson/k8s-helm:latest', command: 'cat', ttyEnabled: true)
 ],
 volumes: [
-  hostPathVolume(mountPath: '/home/gradle/.gradle', hostPath: '/tmp/jenkins/.gradle'),
+  hostPathVolume(mountPath: '/tmp/ecrlogin', hostPath: '/tmp/ecrlogin'),
   hostPathVolume(mountPath: '/var/run/docker.sock', hostPath: '/var/run/docker.sock')
 ]) {
 
@@ -20,11 +20,12 @@ volumes: [
       }
       stage('Docker Login') {
         container('awscli') {
-          sh(script: "eval \$(aws ecr get-login --region us-east-2 --no-include-email)", returnStdout: true)
+          sh(script: "aws ecr get-login --region us-east-2 --no-include-email > /tmp/ecrlogin", returnStdout: true)
         }
       }
       stage('Build and push Docker image') {
         container('docker') {
+          sh(script: "eval \$(cat /tmp/ecrlogin)", returnStdout: true)
           sh(script: "docker build -t ${registry_url}/customersapi:${BUILD_NUMBER} -f src/CustomersAPI/Dockerfile .", returnStdout: true)
           sh(script: "docker push ${registry_url}/customersapi:${BUILD_NUMBER}", returnStdout: true)
           sh(script: "docker build -t ${registry_url}/customersmvc:${BUILD_NUMBER} -f src/CustomersMVC/Dockerfile .", returnStdout: true)
